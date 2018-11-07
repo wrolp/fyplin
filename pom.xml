@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <name>Wrolplin Parent</name>
+    <groupId>org.wrolp.wrolplin</groupId>
+    <artifactId>wrolplin-parent</artifactId>
+    <version>0.0.1</version>
+    <packaging>pom</packaging>
+
+    <licenses>
+        <license>
+            <name>Apache 2.0 License</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <properties>
+        <java.source.version>1.8</java.source.version>
+        <java.target.version>${java.source.version}</java.target.version>
+        <sshd.version>2.1.0</sshd.version>
+        <jetty.version>9.4.12.v20180830</jetty.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <source>${java.source.version}</source>
+                    <target>${java.target.version}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <modules>
+        <!-- 
+        <module>frontend</module>
+         -->
+        <module>backend</module>
+    </modules>
+
+</project>
