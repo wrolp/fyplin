@@ -7,15 +7,16 @@
     
     <parent>
         <groupId>org.wrolp.wrolplin</groupId>
-        <artifactId>wrolplin-parent</artifactId>
+        <artifactId>wrolplin</artifactId>
         <version>0.0.1</version>
     </parent>
 
     <name>Wrolplin Backend</name>
-    <artifactId>wrolplin</artifactId>
+    <artifactId>wrolplin-backend</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
+        <!-- apache mina-sshd -->
         <dependency>
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-common</artifactId>
@@ -25,6 +26,12 @@
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-core</artifactId>
             <version>${sshd.version}</version>
+        </dependency>
+        <!-- jetty -->
+        <dependency>
+            <groupId>org.eclipse.jetty.websocket</groupId>
+            <artifactId>websocket-server</artifactId>
+            <version>${jetty.version}</version>
         </dependency>
     </dependencies>
 
