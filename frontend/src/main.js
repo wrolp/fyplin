@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import App from './App.vue'
+import 'xterm/dist/xterm.css'
 
 Vue.config.productionTip = false
 
