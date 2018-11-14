@@ -1,11 +1,16 @@
 <template>
-    <div id="app"></div>
+    <div id="app">
+        <terminal/>
+    </div>
 </template>
 
 <script>
-    export default {
-        name: 'app'
-    }
+import Terminal from './terminal/Terminal'
+
+export default {
+    name: 'app',
+    components: { Terminal }
+}
 </script>
 
 <style>
