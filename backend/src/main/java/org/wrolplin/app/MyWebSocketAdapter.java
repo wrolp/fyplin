@@ -3,6 +3,8 @@ package org.wrolplin.app;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +20,7 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
     private SshClient client;
     private InputStream fromServer;
     private OutputStream toServer;
+    private boolean stopped;
     
     @Override
     public void onWebSocketConnect(Session sess) {
@@ -35,21 +38,28 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
 //                }
                 client = SshClient.setUpDefaultClient();
                 client.start();
-                try (ClientSession session = client.connect("gns3", "192.168.1.104", 22)
+                try (ClientSession session = client.connect("cisco", "192.168.1.15", 22)
                         .verify()
                         .getSession()) {
-                    session.addPasswordIdentity("gns3");
+                    session.addPasswordIdentity("cisco");
                     session.auth().verify();
-                    try (ChannelShell shell = session.createShellChannel()) {
-                        fromServer = shell.getIn();
-                        toServer = shell.getOut();
-                        shell.setPtyWidth(40);
-                        shell.setPtyHeight(50);
-                        shell.open().verify();
-                        toServer.write("ls".getBytes(), 0, 2);
+                    try (ChannelShell channel = session.createShellChannel();
+                            PipedInputStream inPis = new PipedInputStream();
+                            PipedOutputStream inPos = new PipedOutputStream(inPis);
+                            PipedInputStream outPis = new PipedInputStream();
+                            PipedOutputStream outPos = new PipedOutputStream(outPis)) {
+                        channel.setUsePty(true);
+                        channel.setPtyType("xterm");
+                        channel.setOut(outPos);
+                        channel.setIn(inPis);
+                        fromServer = inPis;
+                        toServer = outPos;
+                        channel.setPtyWidth(40);
+                        channel.setPtyHeight(50);
+                        channel.open().verify();
                         List<ClientChannelEvent> events = new ArrayList<>();
                         events.add(ClientChannelEvent.CLOSED);
-                        shell.waitFor(events, 0);
+                        channel.waitFor(events, 0);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -61,11 +71,11 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
                 try {
                     byte[] buffer = new byte[1024];
                     int size;
-                    while (fromServer == null) {
-                        Thread.sleep(100);
-                    }
-                    while ((size = fromServer.read(buffer)) != -1) {
-                        getSession().getRemote().sendBytes(ByteBuffer.wrap(buffer, 0, size));
+                    stopped = false;
+                    while (!stopped) {
+                        if (fromServer != null && (size = fromServer.read(buffer)) != -1) {
+                            getSession().getRemote().sendBytes(ByteBuffer.wrap(buffer, 0, size));
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -77,6 +87,12 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
     @Override
     public void onWebSocketText(String message) {
         System.out.println("Get message `" + message + "` from " + getSession().getRemoteAddress());
+        try {
+            toServer.write(message.getBytes());
+            toServer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -84,6 +100,7 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
         System.out.println("Get binary message from " + getSession().getRemoteAddress());
         try {
             toServer.write(payload, offset, len);
+            toServer.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -93,7 +110,10 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
     public void onWebSocketClose(int statusCode, String reason) {
         super.onWebSocketClose(statusCode, reason);
         try {
+            System.out.println(statusCode);
+            System.out.println(reason);
             client.close();
+            stopped = true;
         } catch (IOException e) {
             e.printStackTrace();
         }

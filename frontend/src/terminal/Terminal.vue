@@ -4,6 +4,9 @@
 
 <script>
 import { Terminal } from 'xterm'
+import { fit } from 'xterm/lib/addons/fit/fit'
+// eslint-disable-next-line
+import * as attach from 'xterm/lib/addons/attach/attach'
 
 export default {
     name: 'terminal',
@@ -14,9 +17,11 @@ export default {
         }
     },
     mounted () {
+        Terminal.applyAddon(attach)
         let container = document.getElementById('terminal')
         this.xterm = new Terminal()
         this.xterm.open(container)
+        fit(this.xterm)
 
         let uri = 'ws://' + window.location.host + '/ws'
         this.ws = new WebSocket(uri)
@@ -33,8 +38,12 @@ export default {
         }
     },
     beforeDestroy () {
-        this.ws.close()
-        this.xterm.destroy()
+        if (this.ws) {
+            this.ws.close()
+        }
+        if (this.xterm) {
+            this.xterm.destroy()
+        }
     }
 }
 </script>

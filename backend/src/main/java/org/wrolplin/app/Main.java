@@ -3,8 +3,6 @@ package org.wrolplin.app;
 import java.io.InputStream;
 
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.xml.XmlConfiguration;
 
 public class Main {
@@ -21,10 +19,10 @@ public class Main {
 //            handler.setHandler(new MyWebSocketHandler());
 //            server.setHandler(handler);
             // ------------
-            ServletContextHandler sch = new ServletContextHandler(ServletContextHandler.SESSIONS);
-            sch.setContextPath("/");
-            ServletHolder sh = new ServletHolder("websocket", new MyWebSocketServlet());
-            sch.addServlet(sh, "/ws");
+//            ServletContextHandler sch = new ServletContextHandler(ServletContextHandler.SESSIONS);
+//            sch.setContextPath("/");
+//            ServletHolder sh = new ServletHolder("websocket", new MyWebSocketServlet());
+//            sch.addServlet(sh, "/ws");
             // ------------
             server.start();
             System.out.println("!!! Jetty Server Started !!!");

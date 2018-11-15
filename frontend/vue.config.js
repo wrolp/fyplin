@@ -1,9 +1,26 @@
 
 module.exports = {
+    pages: {
+        index: {
+            // entry for the page
+            entry: 'src/main.js',
+            // the source template
+            template: 'public/index.html',
+            // output as dist/index.html
+            filename: 'index.html',
+            // when using title option,
+            // template title tag needs to be <title><%= htmlWebpackPlugin.options.title %></title>
+            title: 'Index Page',
+            // chunks to include on this page, by default includes
+            // extracted common chunks and vendor chunks.
+            chunks: ['chunk-vendors', 'chunk-common', 'index']
+        }
+    },
     devServer: {
+        port: 59216,
         proxy: {
             '/ws': {
-                target: 'http://127.0.0.1:8080',
+                target: 'http://127.0.0.1:9090',
                 ws: true
             }
         }
