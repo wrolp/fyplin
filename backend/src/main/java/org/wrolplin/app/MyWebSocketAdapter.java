@@ -6,8 +6,7 @@ import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.EnumSet;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.channel.ChannelShell;
@@ -21,66 +20,63 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
     private InputStream fromServer;
     private OutputStream toServer;
     private boolean stopped;
-    
+
     @Override
-    public void onWebSocketConnect(Session sess) {
+    public void onWebSocketConnect(final Session sess) {
         super.onWebSocketConnect(sess);
-        new Thread() {
-//            private int count = 0;
+        new Thread("transfer") {
             public void run() {
-//                while (sess.isOpen()) {
-//                    try {
-//                        sess.getRemote().sendString("Count " + ++count);
-//                        Thread.sleep(15000); // 15 sec
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//                    }
-//                }
                 client = SshClient.setUpDefaultClient();
                 client.start();
-                try (ClientSession session = client.connect("cisco", "192.168.1.15", 22)
+                try (ClientSession session = client.connect("gns3", "192.168.1.104", 22)
                         .verify()
                         .getSession()) {
-                    session.addPasswordIdentity("cisco");
+                    session.addPasswordIdentity("gns3");
                     session.auth().verify();
                     try (ChannelShell channel = session.createShellChannel();
                             PipedInputStream inPis = new PipedInputStream();
                             PipedOutputStream inPos = new PipedOutputStream(inPis);
                             PipedInputStream outPis = new PipedInputStream();
                             PipedOutputStream outPos = new PipedOutputStream(outPis)) {
+
                         channel.setUsePty(true);
                         channel.setPtyType("xterm");
-                        channel.setOut(outPos);
                         channel.setIn(inPis);
-                        fromServer = inPis;
-                        toServer = outPos;
+                        channel.setOut(outPos);
+                        fromServer = outPis;
+                        toServer = inPos;
                         channel.setPtyWidth(40);
                         channel.setPtyHeight(50);
                         channel.open().verify();
-                        List<ClientChannelEvent> events = new ArrayList<>();
-                        events.add(ClientChannelEvent.CLOSED);
-                        channel.waitFor(events, 0);
+
+                        try {
+//                            (
+//                             BufferedWriter writer = new BufferedWriter(
+//                                new OutputStreamWriter(toServer, StandardCharsets.UTF_8));
+//                             BufferedReader reader = new BufferedReader(
+//                                new InputStreamReader(fromServer, StandardCharsets.UTF_8))
+//                            ) {
+//                            System.out.println("write");
+//                            writer.write("ls");
+//                            writer.write(0x0d);
+//                            writer.flush();
+//                            System.out.println("writed");
+
+                            byte[] buffer = new byte[1024];
+                            int size;
+                            while ((size = fromServer.read(buffer)) != -1) {
+                                getSession().getRemote().sendBytes(ByteBuffer.wrap(buffer, 0, size));
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+                        channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), 0);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        }.start();
-        new Thread() {
-            public void run() {
-                try {
-                    byte[] buffer = new byte[1024];
-                    int size;
-                    stopped = false;
-                    while (!stopped) {
-                        if (fromServer != null && (size = fromServer.read(buffer)) != -1) {
-                            getSession().getRemote().sendBytes(ByteBuffer.wrap(buffer, 0, size));
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            };
         }.start();
     }
 
