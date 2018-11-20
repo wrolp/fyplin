@@ -6,13 +6,13 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>org.wrolp.wrolplin</groupId>
-        <artifactId>wrolplin</artifactId>
+        <groupId>org.wrolp.fyplin</groupId>
+        <artifactId>fyplin</artifactId>
         <version>0.0.1</version>
     </parent>
 
-    <name>Wrolplin Backend</name>
-    <artifactId>wrolplin-backend</artifactId>
+    <name>Fyplin Backend</name>
+    <artifactId>fyplin-backend</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
