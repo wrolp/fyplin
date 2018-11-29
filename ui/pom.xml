@@ -11,8 +11,8 @@
         <version>0.0.1</version>
     </parent>
 
-    <name>Fyplin Frontend</name>
-    <artifactId>fyplin-frontend</artifactId>
+    <name>Fyplin UI</name>
+    <artifactId>fyplin-ui</artifactId>
     <packaging>pom</packaging>
 
     <dependencies>
