@@ -1,0 +1,11 @@
+#!/bin/sh
+
+KARAF_TITLE="Fyplin"
+
+JAVA_MIN_MEM="128M"
+JAVA_MAX_MEM="512M"
+
+JAVA_META_SPACE="128M"
+JAVA_MAX_META_SPACE="256M"
+
+sh "bin/karaf"
