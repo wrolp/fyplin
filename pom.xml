@@ -54,7 +54,7 @@
         <maven.resources.version>3.1.0</maven.resources.version>
         <maven.bundle.version>3.5.0</maven.bundle.version>
         <maven.clean.version>3.1.0</maven.clean.version>
-        <maven.war.version>3.2.2</maven.clean.version>
+        <maven.war.version>3.2.2</maven.war.version>
         <frontend.maven.version>1.6</frontend.maven.version>
     </properties>
 
