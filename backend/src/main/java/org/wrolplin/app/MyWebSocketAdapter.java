@@ -16,9 +16,11 @@ import org.eclipse.jetty.xml.XmlConfiguration;
 
 public class MyWebSocketAdapter extends WebSocketAdapter {
     private InputStream fromServer;
+    private InputStream errorInput;
     private OutputStream toServer;
     // private boolean stopped;
     private Thread transfer;
+    private Thread errorHandler;
     private TerminalClient client;
 
     // private long timestamp;
@@ -55,8 +57,9 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
                 client = builder.build();
 
                 try (FileOutputStream toFile = new FileOutputStream(file, true)) {
-                    client.start(true);
+                    client.start(false);
                     fromServer = client.getInputStream();
+                    errorInput = client.getErrorStream();
                     toServer = client.getOutputStream();
 
                     byte[] buffer = new byte[1024];
@@ -97,7 +100,47 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
             }
         };
 
+        errorHandler = new Thread(() -> {
+            while (errorInput == null) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                }
+            }
+            if (errorHandler != null) {
+                byte[] buffer = new byte[1024];
+                int size;
+                try {
+                    while ((size = errorInput.read(buffer)) != -1) {
+                        for (int i = 0; i < size; i++) {
+                            byte b = buffer[i];
+                            if (b == ' ') {
+                                System.out.print(" ");
+                            } else if (b == '\t') {
+                                System.out.print("[TAB]");
+                            } else if (b >= 32 && b <= 126 || b == '\r' || b == '\n') {
+                                System.out.print((char) b);
+                            } else if (b == 0x1B) {
+                                System.out.print("[ESC]");
+                            } else if (b == 0x08) {
+                                System.out.print("[BS]");
+                            } else if (b == 0x07) {
+                                System.out.print("[BEL]");
+                            } else {
+                                System.out.print("[" + Integer.toHexString(b) + "]");
+                            }
+                            // System.out.print((char) b);
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        errorHandler.setName("ErrorHandler");
+
         transfer.start();
+        errorHandler.start();
     }
 
     @Override
