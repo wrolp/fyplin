@@ -280,6 +280,7 @@ public class PlinkClientBuilder {
 
         @Override
         public void start(boolean redirectErr) throws IOException {
+            if (plink != null) return;
             processBuilder.redirectErrorStream(redirectErr);
             plink = processBuilder.start();
             input = plink.getInputStream();
