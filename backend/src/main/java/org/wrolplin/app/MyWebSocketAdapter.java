@@ -24,6 +24,9 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
     private Thread errorHandler;
     private TerminalClient client;
 
+    private boolean retry = false;
+    private boolean ssh1 = true;
+
     // private long timestamp;
     // private long timeout;
 
@@ -31,47 +34,73 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
     public void onWebSocketConnect(final Session sess) {
         super.onWebSocketConnect(sess);
 
-        transfer = new Thread(this::transfer);
-        transfer.setName("transfer");
+        Thread connect = new Thread(this::beginLink);
+        connect.setName("Connector");
+        connect.start();
+    }
 
-        errorHandler = new Thread(this::errorHandler);
-        errorHandler.setName("ErrorHandler");
+    private void beginLink() {
+        boolean success = false;
+        do {
+            retry = false;
+            try {
+                PlinkClientBuilder builder = new PlinkClientBuilder();
+                // CHECKSTYLE:OFF
+                builder.withDirectory("../assemblies/karaf/src/main/resources/bin/putty")
+                       .withVerbose(true)
+                       .withX11ForwardingDisable()
+                       .withAgentForwardingDisable()
+                       .withHost("192.168.238.130")
+                       .withPort(22)
+                       .withUser("cisco")
+                       .withPassword("cisco");
+                if (ssh1) {
+                    builder.withSshV1();
+                } else {
+                    builder.withSshV2();
+                }
+                // CHECKSTYLE:ON
 
-        transfer.start();
-        errorHandler.start();
+                client = builder.build();
+                client.start(false);
+                fromServer = client.getInputStream();
+                errorInput = client.getErrorStream();
+                toServer = client.getOutputStream();
+
+                transfer = new Thread(this::transfer);
+                transfer.setName("Transfer");
+
+                errorHandler = new Thread(this::errorHandler);
+                errorHandler.setName("ErrorHandler");
+
+                transfer.start();
+                errorHandler.start();
+
+                transfer.join();
+            } catch (InterruptedException | IOException e) {
+                e.printStackTrace();
+            }
+        } while (!success && retry);
+        
+        client.close();
+        System.out.println("[Closed]");
+        if (getSession() != null) {
+            getSession().close();
+        }
     }
 
     private void transfer() {
         SimpleDateFormat formatter = new SimpleDateFormat("YYYYMMDDHHmmss");
-        String path = "F:/wrolp/session/" + formatter.format(new Date());
+        String path = "../../session/" + formatter.format(new Date());
         File file = new File(path);
         try {
-            new File("F:/wrolp/session").mkdirs();
+            new File("../../session").mkdirs();
             file.createNewFile();
         } catch (IOException e1) {
             e1.printStackTrace();
         }
 
-        PlinkClientBuilder builder = new PlinkClientBuilder();
-        // CHECKSTYLE:OFF
-        builder.withDirectory("F:/wrolp/fyplin/assemblies/karaf/src/main/resources/bin/putty")
-               .withVerbose(true)
-               .withX11ForwardingDisable()
-               .withAgentForwardingDisable()
-               .withHost("192.168.1.15")
-               .withSshV1()
-               .withPort(22)
-               .withUser("cisco")
-               .withPassword("cisco");
-        // CHECKSTYLE:ON
-        client = builder.build();
-
         try (FileOutputStream toFile = new FileOutputStream(file, true)) {
-            client.start(false);
-            fromServer = client.getInputStream();
-            errorInput = client.getErrorStream();
-            toServer = client.getOutputStream();
-
             byte[] buffer = new byte[1024];
             int size;
             boolean lastCr = false;
@@ -133,10 +162,6 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
             }
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            client.close();
-            System.out.println("[Closed]");
-            getSession().close();
         }
     }
 
@@ -179,7 +204,15 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
                                 }
                             }
                             lastCr = false;
-                            errorLine("[ERROR] ", line.toByteArray());
+                            byte[] bytes = line.toByteArray();
+                            errorLine("[ERROR] ", bytes);
+                            if (new String(bytes).contains(
+                                    "FATAL ERROR: SSH protocol version 1 required by our configuration " +
+                                    "but not provided by server")) {
+                                retry = true;
+                                ssh1 = false;
+                                System.out.println("[INFO] Try SSH v2");
+                            }
                             line = new ByteArrayOutputStream();
 //                            System.out.print("[LF]");
                         } else if (lastCr) {
@@ -188,7 +221,17 @@ public class MyWebSocketAdapter extends WebSocketAdapter {
                                 System.out.println("[INFO] line delimiter: CR");
                             }
                             lastCr = false;
-                            errorLine("[ERROR] ", line.toByteArray());
+                            byte[] bytes = line.toByteArray();
+                            errorLine("[ERROR] ", bytes);
+                            if (new String(bytes).contains(
+                                    "FATAL ERROR: SSH protocol version 1 required by our configuration " +
+                                    "but not provided by server")) {
+                                retry = true;
+                                ssh1 = false;
+                                if (client != null)
+                                    client.close();
+                                System.out.println("[INFO] Try SSH v2");
+                            }
                             line = new ByteArrayOutputStream();
                         }
                         // System.out.print((char) b);
